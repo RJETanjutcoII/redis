@@ -1,0 +1,7 @@
+build/
+build-asan/
+*.o
+*.a
+compile_commands.json
+appendonly.aof
+comments.txt
