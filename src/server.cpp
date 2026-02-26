@@ -21,6 +21,15 @@ Server::Server(Config cfg)
         FsyncPolicy policy = FsyncPolicy::EverySecond;
         if (cfg_.aof_fsync == "always") policy = FsyncPolicy::Always;
         else if (cfg_.aof_fsync == "no") policy = FsyncPolicy::No;
+
+        AOFReplayer replayer(cfg_.aof_path);
+        auto commands = replayer.replay();
+        if (!replayer.error().empty())
+            std::cerr << "AOF replay warning: " << replayer.error() << "\n";
+        CommandContext ctx{store_, nullptr, "0.1.0"};
+        for (auto& cmd : commands)
+            dispatcher_.dispatch(ctx, cmd);
+
         aof_ = std::make_unique<AOFWriter>(cfg_.aof_path, policy);
     }
     setup_socket();
