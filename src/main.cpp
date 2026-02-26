@@ -3,6 +3,14 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstring>
+#include <csignal>
+#include <atomic>
+
+std::atomic<bool> g_running{true};
+
+static void handle_signal(int) {
+    g_running = false; // tells the event loop to exit cleanly
+}
 
 Config parse_args(int argc, char** argv) {
     Config cfg;
@@ -22,6 +30,10 @@ Config parse_args(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
+    signal(SIGPIPE, SIG_IGN);       // ignore broken-pipe — handle it as a write() error instead
+    signal(SIGINT,  handle_signal); // Ctrl-C
+    signal(SIGTERM, handle_signal); // kill / systemd stop
+
     Config cfg = parse_args(argc, argv);
 
     try {

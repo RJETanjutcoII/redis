@@ -7,6 +7,9 @@
 #include "connection.h"
 #include <memory>
 #include <unordered_map>
+#include <atomic>
+
+extern std::atomic<bool> g_running;
 
 class Server {
 public:

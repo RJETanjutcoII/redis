@@ -12,6 +12,7 @@
 #include <cerrno>
 
 static const int MAX_EVENTS = 64;
+static const int MAX_CONNECTIONS = 1000;
 
 Server::Server(Config cfg)
     : cfg_(std::move(cfg))
@@ -82,7 +83,7 @@ void Server::run() {
     janitor_.start();
     epoll_event events[MAX_EVENTS];
 
-    while (true) {
+    while (g_running) {
         // Drain janitor deletions before blocking — janitor never touches data_ directly.
         auto deletions = janitor_.drain_deletions();
         store_.delete_expired_batch(deletions);
@@ -111,6 +112,11 @@ void Server::run() {
             }
         }
     }
+
+    // Graceful shutdown: stop janitor and flush any buffered AOF writes.
+    janitor_.stop();
+    if (aof_) aof_->flush();
+    std::cerr << "Server stopped.\n";
 }
 
 void Server::handle_accept() {
@@ -122,6 +128,14 @@ void Server::handle_accept() {
             if (errno == EINTR) continue;
             std::cerr << "accept4() failed: " << strerror(errno) << "\n";
             break;
+        }
+
+        if (static_cast<int>(connections_.size()) >= MAX_CONNECTIONS) {
+            // Too many clients — send an error and drop immediately.
+            const char* msg = "-ERR max number of clients reached\r\n";
+            write(client_fd, msg, strlen(msg));
+            close(client_fd);
+            continue;
         }
 
         connections_.emplace(client_fd, Connection{client_fd});

@@ -126,8 +126,8 @@ redis-benchmark -p 6379 -t set,get -c 50 -n 100000 -q
 
 | Operation | Throughput | p50 latency |
 |-----------|-----------|-------------|
-| SET | ~69 500 req/s | 0.35 ms |
-| GET | ~75 900 req/s | 0.35 ms |
+| SET | ~71 000 req/s | 0.35 ms |
+| GET | ~69 000 req/s | 0.37 ms |
 
 No AOF. Throughput drops with `--aof-fsync always` (one `flush` per command) and recovers with `everysecond`.
 
