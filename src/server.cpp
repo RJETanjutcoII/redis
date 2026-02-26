@@ -69,6 +69,7 @@ void Server::setup_epoll() {
 }
 
 void Server::run() {
+    janitor_.start();
     epoll_event events[MAX_EVENTS];
 
     while (true) {
