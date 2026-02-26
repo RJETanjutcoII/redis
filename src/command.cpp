@@ -54,11 +54,19 @@ CommandResult CommandDispatcher::cmd_set(CommandContext& ctx, const CommandArgs&
         std::transform(opt.begin(), opt.end(), opt.begin(), ::toupper);
 
         if (opt == "EX" && i + 1 < args.size()) {
-            int64_t secs = std::stoll(args[++i]);
-            expiry = Clock::now() + std::chrono::seconds(secs);
+            try {
+                int64_t secs = std::stoll(args[++i]);
+                expiry = Clock::now() + std::chrono::seconds(secs);
+            } catch (const std::exception&) {
+                return resp_error("ERR value is not an integer or out of range");
+            }
         } else if (opt == "PX" && i + 1 < args.size()) {
-            int64_t ms = std::stoll(args[++i]);
-            expiry = Clock::now() + std::chrono::milliseconds(ms);
+            try {
+                int64_t ms = std::stoll(args[++i]);
+                expiry = Clock::now() + std::chrono::milliseconds(ms);
+            } catch (const std::exception&) {
+                return resp_error("ERR value is not an integer or out of range");
+            }
         }
         ++i;
     }
@@ -101,7 +109,12 @@ CommandResult CommandDispatcher::cmd_expire(CommandContext& ctx, const CommandAr
     if (args.size() < 3)
         return resp_error("ERR wrong number of arguments for 'expire'");
 
-    int64_t secs = std::stoll(args[2]);
+    int64_t secs;
+    try {
+        secs = std::stoll(args[2]);
+    } catch (const std::exception&) {
+        return resp_error("ERR value is not an integer or out of range");
+    }
     ctx.store.expire(args[1], secs);
     if (ctx.aof) ctx.aof->append(args);
     return resp_integer(1);
