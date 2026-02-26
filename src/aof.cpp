@@ -3,7 +3,7 @@
 
 AOFWriter::AOFWriter(std::string_view path, FsyncPolicy policy)
     : path_(path), policy_(policy), last_fsync_(std::chrono::steady_clock::now()) {
-    file_.open(path_, std::ios::app | std::ios::binary);
+    file_.open(path_, std::ios::app | std::ios::binary); // append mode — never overwrite
 }
 
 AOFWriter::~AOFWriter() {
@@ -19,7 +19,7 @@ bool AOFWriter::is_open() const {
 
 void AOFWriter::append(const std::vector<std::string>& command) {
     if (!file_.is_open()) return;
-    file_ << resp_array(command);
+    file_ << resp_array(command); // commands stored as RESP arrays — replayer reuses parse_resp
     fsync_if_needed();
 }
 

@@ -72,7 +72,7 @@ CommandResult CommandDispatcher::cmd_set(CommandContext& ctx, const CommandArgs&
     }
 
     ctx.store.set(key, value, expiry);
-    if (ctx.aof) ctx.aof->append(args);
+    if (ctx.aof) ctx.aof->append(args); // log to AOF after successful store write
     return resp_simple_string("OK");
 }
 
@@ -101,6 +101,7 @@ CommandResult CommandDispatcher::cmd_exists(CommandContext& ctx, const CommandAr
     if (args.size() < 2)
         return resp_error("ERR wrong number of arguments for 'exists'");
 
+    // Reuse get() so lazy expiry fires — expired keys correctly return 0.
     auto val = ctx.store.get(args[1]);
     return resp_integer(val.has_value() ? 1 : 0);
 }
@@ -153,7 +154,7 @@ CommandResult CommandDispatcher::cmd_type(CommandContext& ctx, const CommandArgs
 }
 
 CommandResult CommandDispatcher::cmd_dbsize(CommandContext& ctx, const CommandArgs&) {
-    return resp_integer(static_cast<int64_t>(ctx.store.dbsize()));
+    return resp_integer(static_cast<int64_t>(ctx.store.dbsize())); // cast: dbsize returns size_t
 }
 
 CommandResult CommandDispatcher::cmd_flushall(CommandContext& ctx, const CommandArgs& args) {

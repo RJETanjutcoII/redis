@@ -47,7 +47,7 @@ void Server::setup_socket() {
         throw std::runtime_error("socket() failed: " + std::string(strerror(errno)));
 
     int opt = 1;
-    setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // reclaim port immediately on restart
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -61,7 +61,7 @@ void Server::setup_socket() {
         throw std::runtime_error("listen() failed: " + std::string(strerror(errno)));
 
     int flags = fcntl(listen_fd_, F_GETFL, 0);
-    fcntl(listen_fd_, F_SETFL, flags | O_NONBLOCK);
+    fcntl(listen_fd_, F_SETFL, flags | O_NONBLOCK); // required for edge-triggered epoll
 
     std::cout << "Listening on " << cfg_.bind_addr << ":" << cfg_.port << "\n";
 }
@@ -72,6 +72,7 @@ void Server::setup_epoll() {
         throw std::runtime_error("epoll_create1() failed: " + std::string(strerror(errno)));
 
     epoll_event ev{};
+    // EPOLLET: edge-triggered — we are responsible for draining until EAGAIN.
     ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = listen_fd_;
     epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_fd_, &ev);
@@ -82,6 +83,7 @@ void Server::run() {
     epoll_event events[MAX_EVENTS];
 
     while (true) {
+        // Drain janitor deletions before blocking — janitor never touches data_ directly.
         auto deletions = janitor_.drain_deletions();
         store_.delete_expired_batch(deletions);
 
@@ -113,6 +115,7 @@ void Server::run() {
 
 void Server::handle_accept() {
     while (true) {
+        // accept4 sets NONBLOCK and CLOEXEC atomically — avoids a race between accept+fcntl.
         int client_fd = accept4(listen_fd_, nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
         if (client_fd < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) break;
@@ -143,7 +146,7 @@ void Server::handle_read(int fd) {
             close_connection(fd);
             return;
         }
-        if (n == 0) {
+        if (n == 0) { // peer closed connection
             close_connection(fd);
             return;
         }
@@ -166,7 +169,7 @@ void Server::handle_read(int fd) {
         conn.enqueue_response(dispatcher_.dispatch(ctx, cmd));
     }
 
-    if (!conn.write_buf.empty())
+    if (!conn.write_buf.empty()) // switch to watching EPOLLOUT so we know when to flush
         rearm_epoll(fd, EPOLLIN | EPOLLOUT | EPOLLET);
 }
 
@@ -185,7 +188,7 @@ void Server::handle_write(int fd) {
         conn.write_buf.erase(0, n);
     }
 
-    if (conn.write_buf.empty())
+    if (conn.write_buf.empty()) // fully drained — stop watching EPOLLOUT
         rearm_epoll(fd, EPOLLIN | EPOLLET);
 }
 

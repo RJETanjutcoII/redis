@@ -11,6 +11,7 @@ bool KeyValueStore::is_expired(const Entry& e) const {
 void KeyValueStore::set(const std::string& key, std::string value, std::optional<TimePoint> expiry) {
     data_[key] = Entry{std::move(value), expiry};
 
+    // expiry_index_ mirrors TTL'd keys so the janitor can scan them without touching data_.
     std::unique_lock lock(expiry_mutex_);
     if (expiry.has_value()) {
         expiry_index_[key] = expiry.value();
@@ -23,6 +24,7 @@ std::optional<std::string> KeyValueStore::get(const std::string& key) {
     auto it = data_.find(key);
     if (it == data_.end()) return std::nullopt;
 
+    // Lazy expiry: delete on read. The janitor covers keys that are never read again.
     if (is_expired(it->second)) {
         std::unique_lock lock(expiry_mutex_);
         expiry_index_.erase(key);
@@ -105,6 +107,7 @@ std::vector<std::string> KeyValueStore::sample_expired_keys(size_t max_samples) 
     std::vector<std::string> expired;
     size_t checked = 0;
 
+    // Shared lock: janitor reads only. Deletion is delegated to the event loop thread.
     std::shared_lock lock(expiry_mutex_);
     for (auto& [key, expiry] : expiry_index_) {
         if (checked++ >= max_samples) break;

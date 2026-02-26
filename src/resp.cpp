@@ -11,13 +11,13 @@ static size_t find_crlf(const char* buf, size_t len, size_t pos) {
 
 static bool parse_int(const char* buf, size_t start, size_t end, int64_t& out) {
     auto [ptr, ec] = std::from_chars(buf + start, buf + end, out);
-    return ec == std::errc{} && ptr == buf + end;
+    return ec == std::errc{} && ptr == buf + end; // ptr == end ensures no trailing garbage
 }
 
 std::variant<ParseResult, RespError>
 parse_resp(const char* buf, size_t len) {
     if (len == 0) return RespError::NeedMoreData;
-    if (buf[0] != '*') return RespError::ProtocolError;
+    if (buf[0] != '*') return RespError::ProtocolError; // only inline-free RESP arrays accepted
 
     size_t pos = 1;
 
@@ -47,7 +47,7 @@ parse_resp(const char* buf, size_t len) {
 
         pos = crlf + 2;
 
-        if (pos + static_cast<size_t>(str_len) + 2 > len)
+        if (pos + static_cast<size_t>(str_len) + 2 > len) // +2 for the trailing \r\n
             return RespError::NeedMoreData;
 
         command.emplace_back(buf + pos, static_cast<size_t>(str_len));

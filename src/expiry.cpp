@@ -27,6 +27,7 @@ std::vector<std::string> ExpiryJanitor::drain_deletions() {
 void ExpiryJanitor::run() {
     while (running_) {
         std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms_));
+        // Cap at 20 samples per tick — probabilistic eviction, same strategy as real Redis.
         auto expired = store_.sample_expired_keys(20);
         if (!expired.empty()) {
             std::lock_guard lock(mu_);

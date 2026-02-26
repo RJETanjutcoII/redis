@@ -8,6 +8,8 @@ enum class ConnectionState {
 };
 
 struct Connection {
+    explicit Connection(int fd) : fd(fd) {}
+
     int fd;
     ConnectionState state = ConnectionState::Reading;
     std::string read_buf;

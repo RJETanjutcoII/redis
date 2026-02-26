@@ -32,6 +32,6 @@ private:
     bool is_expired(const Entry& e) const;
 
     std::unordered_map<std::string, Entry> data_;
-    std::unordered_map<std::string, TimePoint> expiry_index_;
-    mutable std::shared_mutex expiry_mutex_;
+    std::unordered_map<std::string, TimePoint> expiry_index_; // only keys with a TTL
+    mutable std::shared_mutex expiry_mutex_; // guards expiry_index_; data_ is single-threaded
 };
