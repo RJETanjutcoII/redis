@@ -13,6 +13,10 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_compile_options(-O2)
 endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Asan")
+  add_compile_options(-O1 -fsanitize=address -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address)
+endif()
 
 # Static library shared between server binary and tests
 add_library(mini_redis_lib STATIC

@@ -1,5 +1,6 @@
 build/
 build-asan/
+build-release/
 *.o
 *.a
 compile_commands.json
