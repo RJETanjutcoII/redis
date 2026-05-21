@@ -59,7 +59,26 @@ The event loop is the sole writer to the store, so there is zero lock contention
 
 ---
 
-## Build
+## Docker (recommended)
+
+Requires: Docker with the Compose plugin. No compiler or Linux environment needed.
+
+```bash
+# Build and start (AOF persistence enabled by default)
+docker compose up --build
+
+# Subsequent runs — no rebuild unless source changes
+docker compose up
+
+# Stop
+docker compose down
+```
+
+AOF data is written to a named Docker volume (`redis-data`) and survives restarts.
+
+---
+
+## Build from source
 
 Requires: `cmake >= 3.20`, `g++ / clang++` with C++20 support, Linux (uses epoll).
 
@@ -81,7 +100,7 @@ GoogleTest is fetched automatically by CMake — no system install needed.
 
 ---
 
-## Run
+## Run from source
 
 ```bash
 # Default: port 6379, no persistence

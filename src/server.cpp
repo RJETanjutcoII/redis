@@ -73,7 +73,7 @@ void Server::setup_epoll() {
         throw std::runtime_error("epoll_create1() failed: " + std::string(strerror(errno)));
 
     epoll_event ev{};
-    // EPOLLET: edge-triggered — we are responsible for draining until EAGAIN.
+    // EPOLLET: edge-triggered. We are responsible for draining until EAGAIN.
     ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = listen_fd_;
     epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_fd_, &ev);
@@ -84,7 +84,7 @@ void Server::run() {
     epoll_event events[MAX_EVENTS];
 
     while (g_running) {
-        // Drain janitor deletions before blocking — janitor never touches data_ directly.
+        // Drain janitor deletions before blocking. Janitor never touches data_ directly.
         auto deletions = janitor_.drain_deletions();
         store_.delete_expired_batch(deletions);
 
@@ -121,7 +121,7 @@ void Server::run() {
 
 void Server::handle_accept() {
     while (true) {
-        // accept4 sets NONBLOCK and CLOEXEC atomically — avoids a race between accept+fcntl.
+        // accept4 sets NONBLOCK and CLOEXEC atomically. Avoids a race between accept+fcntl.
         int client_fd = accept4(listen_fd_, nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
         if (client_fd < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) break;
@@ -131,7 +131,7 @@ void Server::handle_accept() {
         }
 
         if (static_cast<int>(connections_.size()) >= MAX_CONNECTIONS) {
-            // Too many clients — send an error and drop immediately.
+            // Too many clients. Send an error and drop immediately.
             const char* msg = "-ERR max number of clients reached\r\n";
             write(client_fd, msg, strlen(msg));
             close(client_fd);
@@ -202,7 +202,7 @@ void Server::handle_write(int fd) {
         conn.write_buf.erase(0, n);
     }
 
-    if (conn.write_buf.empty()) // fully drained — stop watching EPOLLOUT
+    if (conn.write_buf.empty()) // fully drained: stop watching EPOLLOUT
         rearm_epoll(fd, EPOLLIN | EPOLLET);
 }
 

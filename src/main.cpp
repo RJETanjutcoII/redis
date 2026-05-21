@@ -30,7 +30,7 @@ Config parse_args(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    signal(SIGPIPE, SIG_IGN);       // ignore broken-pipe — handle it as a write() error instead
+    signal(SIGPIPE, SIG_IGN); // ignore broken-pipe — handle it as a write() error instead
     signal(SIGINT,  handle_signal); // Ctrl-C
     signal(SIGTERM, handle_signal); // kill / systemd stop
 

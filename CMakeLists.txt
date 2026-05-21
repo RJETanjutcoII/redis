@@ -34,17 +34,18 @@ target_link_libraries(mini_redis_lib PRIVATE pthread)
 add_executable(mini_redis src/main.cpp)
 target_link_libraries(mini_redis PRIVATE mini_redis_lib)
 
-# Tests via googletest (FetchContent — no system install needed)
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-enable_testing()
-add_subdirectory(tests)
+option(BUILD_TESTS "Build unit tests" ON)
+if(BUILD_TESTS)
+  include(FetchContent)
+  FetchContent_Declare(
+      googletest
+      URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  )
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
